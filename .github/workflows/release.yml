@@ -1,0 +1,57 @@
+name: Build and Release
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: atlas
+            asset_name: atlas-linux-amd64.zip
+          - os: windows-latest
+            artifact_name: atlas.exe
+            asset_name: atlas-windows-amd64.zip
+          - os: macos-latest
+            artifact_name: atlas
+            asset_name: atlas-macos-amd64.zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          uv run pyinstaller --onefile --name ${{ matrix.artifact_name }} --paths src --optimize 1 --clean src/main.py
+
+      - name: Create Zip Archive
+        run: |
+          python -c "import zipfile; import os; zipfile.ZipFile('dist/${{ matrix.asset_name }}', 'w', zipfile.ZIP_DEFLATED).write('dist/${{ matrix.artifact_name }}', '${{ matrix.artifact_name }}')"
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/${{ matrix.asset_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
