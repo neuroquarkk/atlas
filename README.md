@@ -2,6 +2,8 @@
 
 Atlas is a fast, local CLI tool designed to index your Python projects. It uses Python's Abstract Syntax Tree (AST) to parse source code making it significantly faster and more accurate than regex-based searching. It allows you to instantly locate classes, functions and methods across your project
 
+![Atlas demo](assets/demo.gif)
+
 ---
 
 ## Features
