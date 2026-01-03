@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 from src.project import Project
 from datetime import datetime
 
@@ -34,6 +34,9 @@ class Storage:
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_name ON symbols(name)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_file ON symbols(file_path)"
+        )
 
         # metadata table
         cursor.execute("""
@@ -43,25 +46,13 @@ class Storage:
             )
         """)
 
-        self.__conn.commit()
-
-    def save_index(
-        self, symbols: List[Symbol], update_timestamp: bool = False
-    ) -> None:
-        cursor = self.__conn.cursor()
-
-        # clear existing index (full re-index)
-        cursor.execute("DELETE FROM symbols")
-
-        data = [
-            (s.symbol_name, s.symbol_type, s.file_path, s.line_number)
-            for s in symbols
-        ]
-
-        cursor.executemany("INSERT INTO symbols VALUES (?, ?, ?, ?)", data)
-
-        if update_timestamp:
-            self.__update_timestamp()
+        # file_hashes table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS file_hashes (
+                file_path TEXT PRIMARY KEY,
+                file_hash TEXT
+            )
+        """)
 
         self.__conn.commit()
 
@@ -78,7 +69,46 @@ class Storage:
 
         return [Symbol(*row) for row in cursor.fetchall()]
 
-    def __update_timestamp(self) -> None:
+    def get_file_hashes(self) -> Dict[str, str]:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT file_path, file_hash FROM file_hashes")
+        return {row[0]: row[1] for row in cursor.fetchall()}
+
+    def update_file(
+        self, file_path: str, file_hash: str, symbols: List[Symbol]
+    ) -> None:
+        cursor = self.__conn.cursor()
+
+        cursor.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
+
+        data = [
+            (s.symbol_name, s.symbol_type, s.file_path, s.line_number)
+            for s in symbols
+        ]
+
+        cursor.executemany("INSERT INTO symbols VALUES (?, ?, ?, ?)", data)
+
+        cursor.execute(
+            "INSERT OR REPLACE INTO file_hashes (file_path, file_hash) VALUES (?, ?)",
+            (file_path, file_hash),
+        )
+
+        self.__conn.commit()
+
+    def remove_file(self, file_path: str) -> None:
+        cursor = self.__conn.cursor()
+        cursor.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
+        cursor.execute(
+            "DELETE FROM file_hashes WHERE file_path = ?", (file_path,)
+        )
+        self.__conn.commit()
+
+    def get_all_symbols(self) -> List[Symbol]:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT * FROM symbols")
+        return [Symbol(*row) for row in cursor.fetchall()]
+
+    def update_timestamp(self) -> None:
         now = datetime.now().isoformat()
         cursor = self.__conn.cursor()
 

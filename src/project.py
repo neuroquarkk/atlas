@@ -1,8 +1,5 @@
-from datetime import datetime
 from dataclasses import dataclass
-from typing import Optional
 from pathlib import Path
-import json
 
 
 @dataclass
@@ -13,13 +10,11 @@ class ProjectMetadata:
 
 class Project:
     __METADATA_DIR = ".atlas"
-    __DB_FILE = "atlas.db"
     __GITIGNORE_FILE = ".gitignore"
 
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
         self.metadata_dir = self.root / self.__METADATA_DIR
-        self.__db_path = self.metadata_dir / self.__DB_FILE
 
     @classmethod
     def init(cls, root: Path) -> None:

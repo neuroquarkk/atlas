@@ -1,5 +1,6 @@
+import hashlib
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 from src.parser import Parser
 from src.project import Project
 from src.storage import Storage, Symbol
@@ -12,25 +13,38 @@ class Indexer:
         self.__storage = Storage(project)
 
     def index(self) -> List[Symbol]:
-        files = self.__find_py_files()
-        symbols: List[Symbol] = []
+        current_files = self.__scan_disk()
+        stored_files = self.__storage.get_file_hashes()
 
-        for file_path in files:
-            file_symbols = self.__parser.parse_file(file_path)
-            symbols.extend(file_symbols)
+        stored_paths = set(stored_files.keys())
+        current_paths = set(current_files.keys())
+        deleted_paths = stored_paths - current_paths
 
-        self.__storage.save_index(symbols, update_timestamp=True)
+        for path in deleted_paths:
+            self.__storage.remove_file(path)
 
-        return symbols
+        for path, current_hash in current_files.items():
+            stored_hash = stored_files.get(path)
+            if stored_hash != current_hash:
+                symbols = self.__parser.parse_file(Path(path))
+                self.__storage.update_file(path, current_hash, symbols)
 
-    def __find_py_files(self) -> List[Path]:
-        files: List[Path] = []
+        self.__storage.update_timestamp()
+        return self.__storage.get_all_symbols()
 
+    def __scan_disk(self) -> Dict[str, str]:
+        file_map: Dict[str, str] = {}
         for path in self.__project.root.rglob("*.py"):
             if self.__should_index(path):
-                files.append(path)
+                file_map[str(path)] = self.__compute_hash(path)
+        return file_map
 
-        return files
+    def __compute_hash(self, file_path: Path) -> str:
+        hasher = hashlib.md5()
+        with open(file_path, "rb") as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+        return hasher.hexdigest()
 
     def __should_index(self, path: Path) -> bool:
         # skip metadata directory
