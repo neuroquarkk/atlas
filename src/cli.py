@@ -4,6 +4,7 @@ from pathlib import Path
 from src.indexer import Indexer
 from src.project import Project
 from src.search import Search
+from src.storage import Storage
 from src.ui import UI
 
 
@@ -105,10 +106,9 @@ class CLI:
         cwd = Path.cwd()
         try:
             project = Project.load(cwd)
-            metadata = project.get_metadata()
-            last_indexed = (
-                metadata.last_indexed if metadata.last_indexed else "Never"
-            )
+            storage = Storage(project)
+            last_indexed = storage.get_last_indexed()
+            storage.close()
 
             self.__ui.print_status(
                 str(project.root), str(project.metadata_dir), last_indexed

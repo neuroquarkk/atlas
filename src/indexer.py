@@ -19,8 +19,7 @@ class Indexer:
             file_symbols = self.__parser.parse_file(file_path)
             symbols.extend(file_symbols)
 
-        self.__storage.save_index(symbols)
-        self.__project.update_indexed_timestamp()
+        self.__storage.save_index(symbols, update_timestamp=True)
 
         return symbols
 

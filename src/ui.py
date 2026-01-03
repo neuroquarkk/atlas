@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Dict, List
 from rich.console import Console
 from rich.table import Table
@@ -93,9 +94,29 @@ class UI:
         table.add_row("Root", root)
         table.add_row("Index Location", str(metadata_dir))
 
-        status_style = "green" if last_indexed != "Never" else "yellow"
-        table.add_row(
-            "Last Indexed", f"[{status_style}]{last_indexed}[/{status_style}]"
-        )
+        display_time = last_indexed
+        style = "yellow"
+
+        if last_indexed != "Never":
+            try:
+                dt = datetime.fromisoformat(last_indexed)
+                formatted_date = dt.strftime("%b %d, %Y %I:%M %p")
+
+                diff = datetime.now() - dt
+                if diff.days == 0 and diff.seconds < 60:
+                    relative = "Just now"
+                elif diff.days == 0 and diff.seconds < 3600:
+                    relative = f"{diff.seconds // 60} mins ago"
+                elif diff.days == 0:
+                    relative = f"{diff.seconds // 3600} hours ago"
+                else:
+                    relative = f"{diff.days} days ago"
+
+                display_time = f"{formatted_date} ({relative})"
+                style = "green"
+            except ValueError:
+                pass
+
+        table.add_row("Last Indexed", f"[{style}]{display_time}[/{style}]")
 
         self.console.print(Panel(table, expand=False, border_style="blue"))
