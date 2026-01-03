@@ -5,6 +5,7 @@ description = "Project-Scoped Codebase Indexer & Search Tool"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pathspec>=0.12.1",
     "rich>=14.2.0",
 ]
 

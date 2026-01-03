@@ -1,4 +1,5 @@
 import hashlib
+import pathspec
 from pathlib import Path
 from typing import Dict, List
 from src.parser import Parser
@@ -11,6 +12,7 @@ class Indexer:
         self.__project = project
         self.__parser = Parser()
         self.__storage = Storage(project)
+        self.__ignore_spec = self.__load_ignore_spec()
 
     def index(self) -> List[Symbol]:
         current_files = self.__scan_disk()
@@ -47,19 +49,33 @@ class Indexer:
         return hasher.hexdigest()
 
     def __should_index(self, path: Path) -> bool:
-        # skip metadata directory
         try:
-            path.relative_to(self.__project.metadata_dir)
-            return False
-        except ValueError:
-            pass
+            rel_path = path.relative_to(self.__project.root)
 
-        # skip common directories to ignore
-        parts = path.parts
-        ignored = {".git", ".venv", "venv", "__pycache__", "node_modules"}
-
-        for part in parts:
-            if part in ignored:
+            if self.__ignore_spec.match_file(str(rel_path)):
                 return False
+            return True
+        except ValueError:
+            return False
 
-        return True
+    def __load_ignore_spec(self) -> pathspec.PathSpec:
+        patterns = [
+            ".git",
+            ".atlas",
+            "__pycache__",
+            ".venv",
+            "venv",
+            "node_modules",
+            "*.pyc",
+            ".DS_Store",
+        ]
+
+        gitignore_path = self.__project.root / ".gitignore"
+        if gitignore_path.exists():
+            try:
+                with open(gitignore_path, "r") as f:
+                    patterns.extend(f.read().splitlines())
+            except Exception:
+                pass
+
+        return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
