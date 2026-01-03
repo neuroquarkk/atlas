@@ -1,7 +1,7 @@
 [project]
 name = "atlas"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Project-Scoped Codebase Indexer & Search Tool"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,5 +12,6 @@ dependencies = [
 dev = [
     "mypy>=1.19.1",
     "pre-commit>=4.5.1",
+    "pyinstaller>=6.17.0",
     "ruff>=0.14.10",
 ]
