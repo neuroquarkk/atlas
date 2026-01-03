@@ -21,9 +21,6 @@ class UI:
     def print_warning(self, message: str) -> None:
         self.console.print(f"[bold yellow]{message}[/bold yellow]")
 
-    def print_header(self, message: str) -> None:
-        self.console.print(f"[bold blue]{message}[/bold blue]")
-
     def print_stats(self, symbols: List[Symbol]) -> None:
         func_count = sum(1 for s in symbols if s.symbol_type == "function")
         class_count = sum(1 for s in symbols if s.symbol_type == "class")
@@ -83,43 +80,6 @@ class UI:
             tree.add(table)
             self.console.print(tree)
             self.console.print("")
-
-    def print_status(
-        self, root: str, metadata_dir: str, last_indexed: str
-    ) -> None:
-        table = Table(title="Project Status", show_header=False, box=None)
-        table.add_column("Key", style="bold")
-        table.add_column("Value")
-
-        table.add_row("Root", root)
-        table.add_row("Index Location", str(metadata_dir))
-
-        display_time = last_indexed
-        style = "yellow"
-
-        if last_indexed != "Never":
-            try:
-                dt = datetime.fromisoformat(last_indexed)
-                formatted_date = dt.strftime("%b %d, %Y %I:%M %p")
-
-                diff = datetime.now() - dt
-                if diff.days == 0 and diff.seconds < 60:
-                    relative = "Just now"
-                elif diff.days == 0 and diff.seconds < 3600:
-                    relative = f"{diff.seconds // 60} mins ago"
-                elif diff.days == 0:
-                    relative = f"{diff.seconds // 3600} hours ago"
-                else:
-                    relative = f"{diff.days} days ago"
-
-                display_time = f"{formatted_date} ({relative})"
-                style = "green"
-            except ValueError:
-                pass
-
-        table.add_row("Last Indexed", f"[{style}]{display_time}[/{style}]")
-
-        self.console.print(Panel(table, expand=False, border_style="blue"))
 
     def print_file_status(self, diff) -> None:
         if not (diff.added or diff.modified or diff.deleted):

@@ -119,12 +119,6 @@ class Storage:
 
         self.__conn.commit()
 
-    def get_last_indexed(self) -> str:
-        cursor = self.__conn.cursor()
-        cursor.execute("SELECT value FROM metadata WHERE key = 'last_indexed'")
-        row = cursor.fetchone()
-        return row[0] if row else "Never"
-
     def clear_database(self) -> None:
         cursor = self.__conn.cursor()
         cursor.execute("DELETE FROM symbols")
