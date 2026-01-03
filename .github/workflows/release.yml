@@ -42,7 +42,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          uv run pyinstaller --onefile --name ${{ matrix.artifact_name }} --paths src --optimize 1 --clean src/main.py
+          uv run pyinstaller --onefile --name ${{ matrix.artifact_name }} --paths src --optimize 1 --clean main.py
 
       - name: Create Zip Archive
         run: |
