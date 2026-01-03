@@ -125,6 +125,13 @@ class Storage:
         row = cursor.fetchone()
         return row[0] if row else "Never"
 
+    def clear_database(self) -> None:
+        cursor = self.__conn.cursor()
+        cursor.execute("DELETE FROM symbols")
+        cursor.execute("DELETE FROM file_hashes")
+        cursor.execute("DELETE FROM metadata")
+        self.__conn.commit()
+
     def close(self) -> None:
         self.__conn.close()
 

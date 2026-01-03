@@ -120,3 +120,25 @@ class UI:
         table.add_row("Last Indexed", f"[{style}]{display_time}[/{style}]")
 
         self.console.print(Panel(table, expand=False, border_style="blue"))
+
+    def print_file_status(self, diff) -> None:
+        if not (diff.added or diff.modified or diff.deleted):
+            self.console.print(
+                "[green]Working directory clean. Index up to date[/green]"
+            )
+            return
+
+        self.console.print("[bold]Changes not in index:[/bold]\n")
+
+        for path in sorted(diff.modified):
+            self.console.print(f"  [yellow]modified: {path}[/yellow]")
+
+        for path in sorted(diff.deleted):
+            self.console.print(f"  [red]deleted: {path}[/red]")
+
+        if diff.added:
+            self.console.print("[bold]Untracked[/bold]")
+            for path in sorted(diff.added):
+                self.console.print(f"  [green]new file: {path}[/green]")
+
+        self.console.print("\n[dim] Run 'atlas index' to update[/dim]")

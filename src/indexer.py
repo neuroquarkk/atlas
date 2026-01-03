@@ -1,10 +1,19 @@
+from dataclasses import dataclass
 import hashlib
 import pathspec
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set
 from src.parser import Parser
 from src.project import Project
 from src.storage import Storage, Symbol
+
+
+@dataclass
+class FileDiff:
+    added: Set[str]
+    modified: Set[str]
+    deleted: Set[str]
+    current_hashes: Dict[str, str]
 
 
 class Indexer:
@@ -14,25 +23,42 @@ class Indexer:
         self.__storage = Storage(project)
         self.__ignore_spec = self.__load_ignore_spec()
 
-    def index(self) -> List[Symbol]:
-        current_files = self.__scan_disk()
-        stored_files = self.__storage.get_file_hashes()
+    def index(self, fresh: bool = False) -> List[Symbol]:
+        if fresh:
+            self.__storage.clear_database()
 
-        stored_paths = set(stored_files.keys())
-        current_paths = set(current_files.keys())
-        deleted_paths = stored_paths - current_paths
+        diff = self.diff_changes()
 
-        for path in deleted_paths:
+        for path in diff.deleted:
             self.__storage.remove_file(path)
 
-        for path, current_hash in current_files.items():
-            stored_hash = stored_files.get(path)
-            if stored_hash != current_hash:
-                symbols = self.__parser.parse_file(Path(path))
-                self.__storage.update_file(path, current_hash, symbols)
+        to_process = diff.added | diff.modified
+
+        for path in to_process:
+            file_hash = diff.current_hashes[path]
+            symbols = self.__parser.parse_file(Path(path))
+            self.__storage.update_file(path, file_hash, symbols)
 
         self.__storage.update_timestamp()
         return self.__storage.get_all_symbols()
+
+    def diff_changes(self) -> FileDiff:
+        current_files = self.__scan_disk()
+        stored_files = self.__storage.get_file_hashes()
+
+        current_paths = set(current_files.keys())
+        stored_paths = set(stored_files.keys())
+
+        added = current_paths - stored_paths
+        deleted = stored_paths - current_paths
+        modified = set()
+
+        common_paths = current_paths.intersection(stored_paths)
+        for path in common_paths:
+            if current_files[path] != stored_files[path]:
+                modified.add(path)
+
+        return FileDiff(added, modified, deleted, current_files)
 
     def __scan_disk(self) -> Dict[str, str]:
         file_map: Dict[str, str] = {}

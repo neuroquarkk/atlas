@@ -28,6 +28,9 @@ class CLI:
 
         # index command
         parser_index = subparsers.add_parser("index", help="Index the project")
+        parser_index.add_argument(
+            "-f", "--fresh", action="store_true", help="Re-index from scratch"
+        )
         parser_index.set_defaults(func=self.__index_command)
 
         # search command
@@ -71,8 +74,14 @@ class CLI:
             project = Project.load(cwd)
             indexer = Indexer(project)
 
-            with self.__ui.console.status("Indexing project..."):
-                symbols = indexer.index()
+            msg = (
+                "Re-indexing from scratch..."
+                if args.fresh
+                else "Indexing project..."
+            )
+
+            with self.__ui.console.status(msg):
+                symbols = indexer.index(fresh=args.fresh)
 
             self.__ui.print_stats(symbols)
 
@@ -106,13 +115,12 @@ class CLI:
         cwd = Path.cwd()
         try:
             project = Project.load(cwd)
-            storage = Storage(project)
-            last_indexed = storage.get_last_indexed()
-            storage.close()
+            indexer = Indexer(project)
 
-            self.__ui.print_status(
-                str(project.root), str(project.metadata_dir), last_indexed
-            )
+            with self.__ui.console.status("Checking file status..."):
+                diff = indexer.diff_changes()
+
+            self.__ui.print_file_status(diff)
         except FileNotFoundError:
             self.__ui.print_warning("atlas not initialized")
             sys.exit(1)
