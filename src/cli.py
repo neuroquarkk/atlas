@@ -34,6 +34,12 @@ class CLI:
             "search", help="Search for symbols"
         )
         parser_search.add_argument("query", help="The symbol to search for")
+        parser_search.add_argument(
+            "-p",
+            "--partial",
+            action="store_true",
+            help="Enable partial matching",
+        )
         parser_search.set_defaults(func=self.__search_command)
 
         # status command
@@ -78,12 +84,13 @@ class CLI:
 
     def __search_command(self, args: argparse.Namespace) -> None:
         query = args.query
+        partial = args.partial
         cwd = Path.cwd()
 
         try:
             project = Project.load(cwd)
             search = Search(project)
-            results = search.find(query)
+            results = search.find(query, partial=partial)
 
             self.__ui.print_search_results(query, results)
 
