@@ -1,16 +1,21 @@
 import sys
 import argparse
 from pathlib import Path
+from importlib.metadata import version, PackageNotFoundError
 from src.indexer import Indexer
 from src.project import Project
 from src.search import Search
-from src.storage import Storage
 from src.ui import UI
+from src.updater import Updater
 
 
 class CLI:
     def __init__(self) -> None:
         self.__ui = UI()
+        try:
+            self.__VERSION = version("atlas")
+        except PackageNotFoundError:
+            self.__VERSION = "0.0.0-dev"
 
     def run(self) -> None:
         parser = argparse.ArgumentParser(
@@ -51,6 +56,18 @@ class CLI:
             "status", help="Show indexing status"
         )
         parser_status.set_defaults(func=self.__status_command)
+
+        # version command
+        parser_version = subparsers.add_parser(
+            "version", help="Show current version"
+        )
+        parser_version.set_defaults(func=self.__version_command)
+
+        # upgrade command
+        parser_upgrade = subparsers.add_parser(
+            "upgrade", help="Update atlas to the latest version"
+        )
+        parser_upgrade.set_defaults(func=self.__upgrade_command)
 
         args = parser.parse_args()
 
@@ -127,3 +144,12 @@ class CLI:
         except Exception as e:
             self.__ui.print_error(f"Failed to get status: {e}")
             sys.exit(1)
+
+    def __version_command(self, args: argparse.Namespace) -> None:
+        self.__ui.console.print(
+            f"atlas version [bold cyan]{self.__VERSION}[/bold cyan]"
+        )
+
+    def __upgrade_command(self, args: argparse.Namespace) -> None:
+        updater = Updater(self.__VERSION, self.__ui)
+        updater.update()
