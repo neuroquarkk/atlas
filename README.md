@@ -19,7 +19,9 @@ Atlas is a fast, local CLI tool designed to index your Python projects. It uses 
 ## Installation
 
 ### Linux & macOS
+
 For `x86_64` systems, you can install `atlas` directly using the installation script. This will automatically detect your OS, download the latest release and move it to `/usr/local/bin`
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/neuroquarkk/atlas/main/install.sh | bash
 ```
@@ -57,5 +59,7 @@ pyinstaller --onefile --name atlas --paths src --optimize 1 --clean main.py
 | Search by exact name   | `atlas search MyClassName` | Best when you know the symbol      |
 | Search by partial name | `atlas search -p Config`   | Fuzzy matching                     |
 | Check index status     | `atlas status`             | See changed, deleted, or new files |
+| Update Atlas           | `atlas upgrade`            | Self-updates to the latest version |
+| Check Version          | `atlas version`            | Show currently installed version   |
 
 ---
