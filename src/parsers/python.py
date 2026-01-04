@@ -1,6 +1,7 @@
 import ast
 from pathlib import Path
 from typing import List
+from src.parsers.base import BaseParser
 from src.storage import Symbol
 
 
@@ -45,7 +46,7 @@ class SymbolVisitor(ast.NodeVisitor):
         self.visit_FunctionDef(node)  # type: ignore
 
 
-class Parser:
+class PythonParser(BaseParser):
     def parse_file(self, file_path: Path) -> List[Symbol]:
         try:
             with open(file_path, "r") as f:
@@ -59,3 +60,7 @@ class Parser:
             return visitor.symbols
         except Exception:
             return []
+
+    @property
+    def extensions(self) -> List[str]:
+        return [".py"]

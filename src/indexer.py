@@ -3,7 +3,7 @@ import hashlib
 import pathspec
 from pathlib import Path
 from typing import Dict, List, Set
-from src.parser import Parser
+from src.parsers.parser import Parser
 from src.project import Project
 from src.storage import Storage, Symbol
 
