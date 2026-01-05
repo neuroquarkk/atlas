@@ -11,6 +11,8 @@ class Symbol:
     symbol_type: str  # function, class, method
     file_path: str
     line_number: int
+    signature: str = ""
+    docstring: str = ""
 
 
 class Storage:
@@ -30,7 +32,9 @@ class Storage:
                 name TEXT,
                 type TEXT,
                 file_path TEXT,
-                line_number INTEGER
+                line_number INTEGER,
+                signature TEXT,
+                docstring TEXT
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_name ON symbols(name)")
@@ -82,11 +86,20 @@ class Storage:
         cursor.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
 
         data = [
-            (s.symbol_name, s.symbol_type, s.file_path, s.line_number)
+            (
+                s.symbol_name,
+                s.symbol_type,
+                s.file_path,
+                s.line_number,
+                s.signature,
+                s.docstring,
+            )
             for s in symbols
         ]
 
-        cursor.executemany("INSERT INTO symbols VALUES (?, ?, ?, ?)", data)
+        cursor.executemany(
+            "INSERT INTO symbols VALUES (?, ?, ?, ?, ?, ?)", data
+        )
 
         cursor.execute(
             "INSERT OR REPLACE INTO file_hashes (file_path, file_hash) VALUES (?, ?)",

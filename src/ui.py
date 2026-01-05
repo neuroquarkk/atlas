@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 from typing import Dict, List
 from rich.console import Console
 from rich.table import Table
@@ -73,9 +72,15 @@ class UI:
             table.add_column("Line", style="green", width=6)
             table.add_column("Type", style="cyan", width=10)
             table.add_column("Name", style="bold white")
+            table.add_column("Signature", style="dim white")
 
             for s in symbols:
-                table.add_row(str(s.line_number), s.symbol_type, s.symbol_name)
+                table.add_row(
+                    str(s.line_number),
+                    s.symbol_type,
+                    s.symbol_name,
+                    s.signature,
+                )
 
             tree.add(table)
             self.console.print(tree)
