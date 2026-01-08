@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from src.project import Project
 from datetime import datetime
 
@@ -120,6 +120,42 @@ class Storage:
         cursor = self.__conn.cursor()
         cursor.execute("SELECT * FROM symbols")
         return [Symbol(*row) for row in cursor.fetchall()]
+
+    def get_file_count(self) -> int:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM file_hashes")
+        return cursor.fetchone()[0]
+
+    def get_total_symbol_count(self) -> int:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM symbols")
+        return cursor.fetchone()[0]
+
+    def get_documented_symbol_count(self) -> int:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM symbols WHERE docstring != ''")
+        return cursor.fetchone()[0]
+
+    def get_symbol_counts_by_type(self) -> Dict[str, int]:
+        cursor = self.__conn.cursor()
+        cursor.execute("SELECT type, COUNT(*) FROM symbols GROUP BY type")
+        return {row[0]: row[1] for row in cursor.fetchall()}
+
+    def get_top_files_by_symbol_count(
+        self, limit: int = 5
+    ) -> List[Tuple[str, int]]:
+        cursor = self.__conn.cursor()
+        cursor.execute(
+            """
+            SELECT file_path, COUNT(*) as count
+            FROM symbols
+            GROUP BY file_path
+            ORDER BY count DESC
+            LIMIT ?
+        """,
+            (limit,),
+        )
+        return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def update_timestamp(self) -> None:
         now = datetime.now().isoformat()

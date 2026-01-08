@@ -51,15 +51,17 @@ pyinstaller --onefile --name atlas --paths src --optimize 1 --clean main.py
 
 ## Usage
 
-| What you want to do    | Command                    | Notes                              |
-| ---------------------- | -------------------------- | ---------------------------------- |
-| Initialize Atlas       | `atlas init`               | Run once per project               |
-| Index your code        | `atlas index`              | Fast, incremental by default       |
-| Rebuild the index      | `atlas index --fresh`      | Optional, rarely needed            |
-| Search by exact name   | `atlas search MyClassName` | Best when you know the symbol      |
-| Search by partial name | `atlas search -p Config`   | Fuzzy matching                     |
-| Check index status     | `atlas status`             | See changed, deleted, or new files |
-| Update Atlas           | `atlas upgrade`            | Self-updates to the latest version |
-| Check Version          | `atlas version`            | Show currently installed version   |
+| **Command**                | **Notes**                                               |
+| -------------------------- | ------------------------------------------------------- |
+| `atlas init`               | Initialize Atlas, run once per project                  |
+| `atlas index`              | Index your code, fast, incremental by default           |
+| `atlas index --fresh`      | Rebuild the index, optional, rarely needed              |
+| `atlas search MyClassName` | Search by exact name, best when you know the symbol     |
+| `atlas search -p Config`   | Fuzzy matching                  |
+| `atlas status`             | Check index status, see changed, deleted, or new files  |
+| `atlas stats`              | View codebase stats, overview, doc coverage, & hotspots |
+| `atlas stats --limit <N>`  | Custom stats limit, show top N largest files            |
+| `atlas upgrade`            | Update Atlas, self-updates to the latest version        |
+| `atlas version`            | Check version, show currently installed version         |
 
 ---

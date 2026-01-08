@@ -5,6 +5,7 @@ from importlib.metadata import version, PackageNotFoundError
 from src.indexer import Indexer
 from src.project import Project
 from src.search import Search
+from src.stats import Stats
 from src.ui import UI
 from src.updater import Updater
 
@@ -68,6 +69,18 @@ class CLI:
             "upgrade", help="Update atlas to the latest version"
         )
         parser_upgrade.set_defaults(func=self.__upgrade_command)
+
+        # stats command
+        parser_stats = subparsers.add_parser(
+            "stats", help="Show advanced codebase statistics"
+        )
+        parser_stats.add_argument(
+            "-l",
+            "--limit",
+            default=5,
+            help="Number of top files to show in hotspots",
+        )
+        parser_stats.set_defaults(func=self.__stats_command)
 
         args = parser.parse_args()
 
@@ -153,3 +166,19 @@ class CLI:
     def __upgrade_command(self, args: argparse.Namespace) -> None:
         updater = Updater(self.__VERSION, self.__ui)
         updater.update()
+
+    def __stats_command(self, args: argparse.Namespace) -> None:
+        cwd = Path.cwd()
+
+        try:
+            project = Project.load(cwd)
+            stats = Stats(project)
+            with self.__ui.console.status("Calculating stats..."):
+                data = stats.generate(limit=args.limit)
+            self.__ui.print_advanced_stats(data)
+        except FileNotFoundError:
+            self.__ui.print_warning("atlas not initialized")
+            sys.exit(1)
+        except Exception as e:
+            self.__ui.print_error(f"Failed to generate stats: {e}")
+            sys.exit(1)

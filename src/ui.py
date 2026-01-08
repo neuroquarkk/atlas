@@ -1,9 +1,11 @@
 from collections import defaultdict
 from typing import Dict, List
 from rich.console import Console
+from rich.columns import Columns
 from rich.table import Table
 from rich.panel import Panel
 from rich.tree import Tree
+from src.stats import CodebaseStats
 from src.storage import Symbol
 
 
@@ -107,3 +109,52 @@ class UI:
                 self.console.print(f"  [green]new file: {path}[/green]")
 
         self.console.print("\n[dim] Run 'atlas index' to update[/dim]")
+
+    def print_advanced_stats(self, stats: CodebaseStats) -> None:
+        grid = Table.grid(expand=True)
+        grid.add_column()
+        grid.add_column(justify="right")
+
+        grid.add_row("Total Files", str(stats.total_files))
+        grid.add_row("Total Symbols", str(stats.total_symbols))
+
+        color = (
+            "green"
+            if stats.docstring_coverage > 80
+            else "yellow"
+            if stats.docstring_coverage > 50
+            else "red"
+        )
+        grid.add_row(
+            "Doc Coverage", f"[{color}]{stats.docstring_coverage}%[/{color}]"
+        )
+
+        overview_panel = Panel(
+            grid, title="[bold]Overview[/bold]", border_style="blue"
+        )
+
+        dist_table = Table(title="Symbol Distribution", box=None)
+        dist_table.add_column("Type", style="cyan")
+        dist_table.add_column("Count", justify="right")
+
+        for s_type, count in stats.type_distribution.items():
+            dist_table.add_row(s_type.title(), str(count))
+
+        dist_panel = Panel(dist_table, border_style="white")
+
+        count = len(stats.top_files)
+        hotspot_table = Table(
+            title=f"Complexity Hotspots (Top {count} Files)",
+            box=None,
+            show_header=False,
+        )
+        hotspot_table.add_column("File", style="magenta")
+        hotspot_table.add_column("Symbols", justify="right", style="green")
+
+        for file_path, count in stats.top_files:
+            hotspot_table.add_row(file_path, f"{count} symbols")
+
+        hotspot_panel = Panel(hotspot_table, border_style="magenta")
+
+        self.console.print(Columns([overview_panel, dist_panel]))
+        self.console.print(hotspot_panel)
