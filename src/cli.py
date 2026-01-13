@@ -1,5 +1,4 @@
-import sys
-import argparse
+import typer
 from pathlib import Path
 from importlib.metadata import version, PackageNotFoundError
 from src.indexer import Indexer
@@ -9,176 +8,131 @@ from src.stats import Stats
 from src.ui import UI
 from src.updater import Updater
 
+app = typer.Typer(
+    name="atlas",
+    help="Project Scoped Codebase Indexer",
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
+ui = UI()
 
-class CLI:
-    def __init__(self) -> None:
-        self.__ui = UI()
-        try:
-            self.__VERSION = version("atlas")
-        except PackageNotFoundError:
-            self.__VERSION = "0.0.0-dev"
+try:
+    VERSION = version("atlas")
+except PackageNotFoundError:
+    VERSION = "0.0.0-dev"
 
-    def run(self) -> None:
-        parser = argparse.ArgumentParser(
-            prog="atlas", description="Project Scoped Codebase Indexer"
-        )
-        subparsers = parser.add_subparsers(
-            dest="command", help="Available commands"
-        )
 
-        # init command
-        parser_init = subparsers.add_parser(
-            "init", help="Initialize atlas in current directory"
-        )
-        parser_init.set_defaults(func=self.__init_command)
+@app.command()
+def init():
+    """Initialize atlas in current directory"""
+    cwd = Path.cwd()
+    try:
+        Project.init(cwd)
+        ui.print_success(f"Initialized atlas in {cwd}")
+    except Exception as e:
+        ui.print_error(f"Failed to initialize: {e}")
+        raise typer.Exit(code=1)
 
-        # index command
-        parser_index = subparsers.add_parser("index", help="Index the project")
-        parser_index.add_argument(
-            "-f", "--fresh", action="store_true", help="Re-index from scratch"
-        )
-        parser_index.set_defaults(func=self.__index_command)
 
-        # search command
-        parser_search = subparsers.add_parser(
-            "search", help="Search for symbols"
-        )
-        parser_search.add_argument("query", help="The symbol to search for")
-        parser_search.add_argument(
-            "-p",
-            "--partial",
-            action="store_true",
-            help="Enable partial matching",
-        )
-        parser_search.set_defaults(func=self.__search_command)
+@app.command()
+def index(
+    fresh: bool = typer.Option(
+        False,
+        "--fresh",
+        "-f",
+        help="Re-index from scratch",
+    ),
+):
+    """Index the project"""
+    cwd = Path.cwd()
+    try:
+        project = Project.load(cwd)
+        indexer = Indexer(project)
 
-        # status command
-        parser_status = subparsers.add_parser(
-            "status", help="Show indexing status"
-        )
-        parser_status.set_defaults(func=self.__status_command)
+        msg = "Re-indexing from scratch..." if fresh else "Indexing project..."
 
-        # version command
-        parser_version = subparsers.add_parser(
-            "version", help="Show current version"
-        )
-        parser_version.set_defaults(func=self.__version_command)
+        with ui.console.status(msg):
+            symbols = indexer.index(fresh=fresh)
 
-        # upgrade command
-        parser_upgrade = subparsers.add_parser(
-            "upgrade", help="Update atlas to the latest version"
-        )
-        parser_upgrade.set_defaults(func=self.__upgrade_command)
+        ui.print_stats(symbols)
+    except FileNotFoundError:
+        ui.print_warning("atlas not initialized. Run 'atlas init'")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        ui.print_error(f"Indexing failed: {e}")
+        raise typer.Exit(code=1)
 
-        # stats command
-        parser_stats = subparsers.add_parser(
-            "stats", help="Show advanced codebase statistics"
-        )
-        parser_stats.add_argument(
-            "-l",
-            "--limit",
-            default=5,
-            help="Number of top files to show in hotspots",
-        )
-        parser_stats.set_defaults(func=self.__stats_command)
 
-        args = parser.parse_args()
+@app.command()
+def search(
+    query: str = typer.Argument(..., help="The symbol to search for"),
+    partial: bool = typer.Option(
+        False, "--partial", "-p", help="Enable partial search"
+    ),
+):
+    """Search for symbols"""
+    cwd = Path.cwd()
+    try:
+        project = Project.load(cwd)
+        search_engine = Search(project)
+        results = search_engine.find(query, partial=partial)
+        ui.print_search_results(query, results)
+    except FileNotFoundError:
+        ui.print_warning("atlas not initialized or not indexed")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        ui.print_error(f"Search failed: {e}")
+        raise typer.Exit(code=1)
 
-        if hasattr(args, "func"):
-            args.func(args)
-        else:
-            parser.print_help()
 
-    def __init_command(self, args: argparse.Namespace) -> None:
-        cwd = Path.cwd()
-        try:
-            Project.init(cwd)
-            self.__ui.print_success(f"initialized atlas in {cwd}")
-        except Exception as e:
-            self.__ui.print_error(f"Failed to initialize: {e}")
-            sys.exit(1)
+@app.command()
+def status():
+    """Show indexing status"""
+    cwd = Path.cwd()
+    try:
+        project = Project.load(cwd)
+        indexer = Indexer(project)
+        with ui.console.status("Checking file status..."):
+            diff = indexer.diff_changes()
+        ui.print_file_status(diff)
+    except FileNotFoundError:
+        ui.print_warning("atlas not initialized or not indexed")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        ui.print_error(f"Failed to get status: {e}")
+        raise typer.Exit(code=1)
 
-    def __index_command(self, args: argparse.Namespace) -> None:
-        cwd = Path.cwd()
-        try:
-            project = Project.load(cwd)
-            indexer = Indexer(project)
 
-            msg = (
-                "Re-indexing from scratch..."
-                if args.fresh
-                else "Indexing project..."
-            )
+@app.command()
+def stats(
+    limit: int = typer.Option(
+        5, "--limit", "-l", help="Number of top files to show"
+    ),
+):
+    """Show advanced codebase statistics"""
+    cwd = Path.cwd()
+    try:
+        project = Project.load(cwd)
+        stats_engine = Stats(project)
+        with ui.console.status("Calculating stats..."):
+            data = stats_engine.generate(limit=limit)
+        ui.print_advanced_stats(data)
+    except FileNotFoundError:
+        ui.print_warning("atlas not initialized or not indexed")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        ui.print_error(f"Failed to get status: {e}")
+        raise typer.Exit(code=1)
 
-            with self.__ui.console.status(msg):
-                symbols = indexer.index(fresh=args.fresh)
 
-            self.__ui.print_stats(symbols)
+@app.command()
+def upgrade():
+    """Update atlas to the latest version"""
+    updater = Updater(VERSION, ui)
+    updater.update()
 
-        except FileNotFoundError:
-            self.__ui.print_warning("atlas not initialized. Run 'atlas init'")
-            sys.exit(1)
-        except Exception as e:
-            self.__ui.print_error(f"Indexing failed: {e}")
-            sys.exit(1)
 
-    def __search_command(self, args: argparse.Namespace) -> None:
-        query = args.query
-        partial = args.partial
-        cwd = Path.cwd()
-
-        try:
-            project = Project.load(cwd)
-            search = Search(project)
-            results = search.find(query, partial=partial)
-
-            self.__ui.print_search_results(query, results)
-
-        except FileNotFoundError:
-            self.__ui.print_warning("atlas not initialized or not indexed")
-            sys.exit(1)
-        except Exception as e:
-            self.__ui.print_error(f"Search failed: {e}")
-            sys.exit(1)
-
-    def __status_command(self, args: argparse.Namespace) -> None:
-        cwd = Path.cwd()
-        try:
-            project = Project.load(cwd)
-            indexer = Indexer(project)
-
-            with self.__ui.console.status("Checking file status..."):
-                diff = indexer.diff_changes()
-
-            self.__ui.print_file_status(diff)
-        except FileNotFoundError:
-            self.__ui.print_warning("atlas not initialized")
-            sys.exit(1)
-        except Exception as e:
-            self.__ui.print_error(f"Failed to get status: {e}")
-            sys.exit(1)
-
-    def __version_command(self, args: argparse.Namespace) -> None:
-        self.__ui.console.print(
-            f"atlas version [bold cyan]{self.__VERSION}[/bold cyan]"
-        )
-
-    def __upgrade_command(self, args: argparse.Namespace) -> None:
-        updater = Updater(self.__VERSION, self.__ui)
-        updater.update()
-
-    def __stats_command(self, args: argparse.Namespace) -> None:
-        cwd = Path.cwd()
-
-        try:
-            project = Project.load(cwd)
-            stats = Stats(project)
-            with self.__ui.console.status("Calculating stats..."):
-                data = stats.generate(limit=args.limit)
-            self.__ui.print_advanced_stats(data)
-        except FileNotFoundError:
-            self.__ui.print_warning("atlas not initialized")
-            sys.exit(1)
-        except Exception as e:
-            self.__ui.print_error(f"Failed to generate stats: {e}")
-            sys.exit(1)
+@app.command()
+def version():
+    """Show current version"""
+    ui.console.print(f"atlas version [bold cyan]{VERSION}[/bold cyan]")

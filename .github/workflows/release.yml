@@ -4,6 +4,18 @@ on:
     tags:
       - "v*"
 
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g., v1.3.0)"
+        required: true
+        type: string
+      create_release:
+        description: "Create GitHub release"
+        required: false
+        type: boolean
+        default: false
+
 jobs:
   build:
     name: Build for ${{ matrix.os }}
@@ -11,17 +23,35 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             artifact_name: atlas
             asset_name: atlas-linux-amd64.zip
+            arch: amd64
+          - os: ubuntu-latest
+            artifact_name: atlas
+            asset_name: atlas-linux-arm64.zip
+            arch: arm64
+
           - os: windows-latest
             artifact_name: atlas.exe
             asset_name: atlas-windows-amd64.zip
+            arch: amd64
+          - os: windows-latest
+            artifact_name: atlas.exe
+            asset_name: atlas-windows-arm64.zip
+            arch: arm64
+
           - os: macos-latest
             artifact_name: atlas
             asset_name: atlas-macos-amd64.zip
+            arch: amd64
+          - os: macos-latest
+            artifact_name: atlas
+            asset_name: atlas-macos-arm64.zip
+            arch: arm64
 
     steps:
       - name: Checkout
@@ -37,12 +67,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync
-          uv pip install .
+          uv sync --frozen --no-dev
+
+      - name: Install PyInstaller
+        run: |
+          uv pip install pyinstaller
 
       - name: Build with PyInstaller
         run: |
-          uv run pyinstaller --onefile --name ${{ matrix.artifact_name }} --copy-metadata=atlas --paths src --optimize 1 --clean main.py
+          uv run pyinstaller \
+              --onefile \
+              --name ${{ matrix.artifact_name }} \
+              --copy-metadata=atlas \
+              --paths src \
+              --optimize 2 \
+              --clean \
+              --noconfirm \
+              --strip \
+              main.py
 
       - name: Create Zip Archive
         run: |
