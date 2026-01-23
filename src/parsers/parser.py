@@ -20,10 +20,3 @@ class Parser:
             return []
 
         return parser.parse_file(file_path)
-
-    def get_supported_extensions(self) -> List[str]:
-        return list(self.__ext_map.keys())
-
-    def supports_file(self, file_path: Path) -> bool:
-        ext = file_path.suffix.lower()
-        return ext in self.__ext_map

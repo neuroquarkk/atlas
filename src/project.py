@@ -1,11 +1,4 @@
-from dataclasses import dataclass
 from pathlib import Path
-
-
-@dataclass
-class ProjectMetadata:
-    project_root: str
-    last_indexed: str
 
 
 class Project:

@@ -1,3 +1,4 @@
+from src.analysis import Analyzer
 import typer
 from pathlib import Path
 from importlib.metadata import version, PackageNotFoundError
@@ -130,6 +131,26 @@ def upgrade():
     """Update atlas to the latest version"""
     updater = Updater(VERSION, ui)
     updater.update()
+
+
+@app.command()
+def unused():
+    """Find potentially unused symbols"""
+    cwd = Path.cwd()
+    try:
+        project = Project.load(cwd)
+        analyzer = Analyzer(project)
+
+        with ui.console.status("Analyzing codebase for usage..."):
+            unused_symbols = analyzer.find_unused_symbols()
+
+        ui.print_unused(unused_symbols)
+    except FileNotFoundError:
+        ui.print_warning("atlas not initialized or not indexed")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        ui.print_error(f"Analysis failed: {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()

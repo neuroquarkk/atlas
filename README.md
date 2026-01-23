@@ -57,10 +57,11 @@ pyinstaller --onefile --name atlas --paths src --optimize 1 --clean main.py
 | `atlas index`              | Index your code, fast, incremental by default           |
 | `atlas index --fresh`      | Rebuild the index, optional, rarely needed              |
 | `atlas search MyClassName` | Search by exact name, best when you know the symbol     |
-| `atlas search -p Config`   | Fuzzy matching                  |
+| `atlas search -p Config`   | Fuzzy matching                                          |
 | `atlas status`             | Check index status, see changed, deleted, or new files  |
 | `atlas stats`              | View codebase stats, overview, doc coverage, & hotspots |
 | `atlas stats --limit <N>`  | Custom stats limit, show top N largest files            |
+| `atlas unused`             | Find potentially unused symbols                         |
 | `atlas upgrade`            | Update Atlas, self-updates to the latest version        |
 | `atlas version`            | Check version, show currently installed version         |
 

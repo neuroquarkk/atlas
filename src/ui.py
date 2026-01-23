@@ -158,3 +158,33 @@ class UI:
 
         self.console.print(Columns([overview_panel, dist_panel]))
         self.console.print(hotspot_panel)
+
+    def print_unused(self, symbols: List[Symbol]) -> None:
+        if not symbols:
+            self.print_success("No unused symbols detected")
+            return
+
+        self.console.print(
+            f"[bold yellow]Potential Unused Symbols: {
+                len(symbols)
+            }[/bold yellow]\n"
+        )
+
+        grouped: Dict[str, List[Symbol]] = defaultdict(list)
+        for symbol in symbols:
+            grouped[symbol.file_path].append(symbol)
+
+        for file_path, file_symbols in grouped.items():
+            tree = Tree(f"[dim]{file_path}[/dim]")
+
+            table = Table(box=None, show_header=False, pad_edge=False)
+            table.add_column("Line", style="red", width=6)
+            table.add_column("Type", style="cyan", width=10)
+            table.add_column("Name", style="bold white")
+
+            for s in file_symbols:
+                table.add_row(str(s.line_number), s.symbol_type, s.symbol_name)
+
+            tree.add(table)
+            self.console.print(tree)
+            self.console.print("")
